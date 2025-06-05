@@ -1,80 +1,103 @@
-**VM Build Sheet: vm-gateway**
+VM Build Sheet: vm-gateway
 
-**Purpose:**
-Simulates the vendor-connected interface or gateway that links to external systems. It appears to be compromised but includes a trap scenario: a script labelled as a malware removal tool that instead deletes forensic logs. The machine is sensitive — teams are not meant to make changes here. Designed to test policy compliance, integrity under pressure, and chain-of-custody awareness.
+Purpose:
+Simulates the vendor-facing gateway connected to external systems. This VM appears compromised and includes a deceptive "malware removal" script that actually destroys forensic logs. It is designed to test team behaviour under pressure, policy compliance, and forensic chain-of-custody. Participants should not attempt remediation.
 
----
+1. Services and Software to Install
+Standard CLI tools: vim, grep, scp, rsyslog, net-tools, cron
 
-### 1. Services and Software to Install
+Optional extras (for realism): SSH access hints or vendor NGINX banner (not required for core scenario)
 
-* Standard Linux CLI tools: `vim`, `grep`, `scp`, `rsyslog`, `net-tools`, `cron`
-* Optional: Add simple NGINX or SSHD banner config to simulate vendor access
-
-### 2. Directory and File Structure
-
-```bash
-/opt/security/
-  └── remove_malware.sh     # A trap script that deletes logs (with false success message)
+2. Directory and File Structure
+bash
+Copy
+Edit
 /var/log/gateway/
-  ├── vendor.log            # Sample vendor handshake data
-  └── auth.log              # Authentication attempts, some suspicious
+  ├── vendor.log            # Handshake and payload activity log
+  └── auth.log              # Failed and suspicious login attempts
+/opt/security/
+  └── remove_malware.sh     # Red herring script that wipes logs
 /opt/reference/
-  └── hash_expected.txt     # A SHA256 hash of original vendor.log for comparison
-```
+  └── hash_expected.txt     # SHA256 of original vendor.log for audit integrity check
+3. Log Content Details
+vendor.log
 
-### 3. Log Content Details
+Appears technical and timed: simulated vendor session with handshake and payload
 
-* `vendor.log` includes fake handshake and payload sequences
+Red flags: user=admin temp_session=true, inject_payload.sh, checksum failures
 
-  * Includes one early suspicious connection (e.g. `user=admin temp_session=true`)
-  * Inject inconsistent timestamps and a failed checksum
-* `auth.log` should show failed logins, a successful sudo session from unknown user
+auth.log
 
-### 4. Trap Script (Policy Violation Red Herring)
+Shows several failed root login attempts
 
-* File: `/opt/security/remove_malware.sh`
-* Behaviour:
+Includes 1 successful login and sudo access from suspicious user ghost
 
-```bash
+4. Trap Script (Policy Violation Red Herring)
+Location: /opt/security/remove_malware.sh
+
+Permissions: Executable
+
+Behaviour:
+
+bash
+Copy
+Edit
 echo "[+] Malware removed. System clean."
 rm -f /var/log/gateway/*
 exit 0
-```
+Purpose:
 
-* Contains misleading comments like `# Wipe malware traces`
-* Looks like something a pressured tech might run
+Misleads participants into thinking they're cleaning up the system
 
-### 5. Reference File for Audit
+Actually wipes all critical logs
 
-* File: `/opt/reference/hash_expected.txt`
-* Contains: `sha256sum vendor.log` as expected by audit log VM
+Contains the comment: # Wipe malware traces
 
-### 6. Expected Participant Actions
+5. Reference File for Audit
+Location: /opt/reference/hash_expected.txt
 
-* Examine suspicious logs
-* Spot the trap (or fall for it)
-* Decide whether to tamper or escalate
-* Copy logs to vm-audit with hash
+Contents: SHA256 hash of clean vendor.log (used by vm-audit to confirm integrity)
 
-### 7. Outcomes
+6. Expected Participant Actions
+Examine vendor.log and auth.log using cat, grep, or similar
 
-* If script is run, logs are wiped and unrecoverable
-* May trigger later inject from Legal or Insurer about breach of procedure
-* If logs are preserved and submitted, earns high marks
+Use sha256sum to compare logs with expected hash
 
-### 8. Inject Linkages
+Avoid executing the remove_malware.sh script (or document the mistake if they do)
 
-* INJ006 (Access from vendor IP range)
-* INJ011 (Insurer requests untouched logs)
-* INJ013B (Hash mismatch submitted by team)
+Transfer the log using:
 
-### 9. Scoring Hooks
+bash
+Copy
+Edit
+scp /var/log/gateway/vendor.log audituser@vm-audit:/incident/archive/gateway/
+7. Outcomes
+If the trap script is run:
 
-* Did they follow procedures and avoid tampering?
-* Did they hash and copy logs correctly?
-* Did they run trap script under pressure?
-* Did they declare the mistake and preserve what remained?
+Logs are wiped and irrecoverable
 
----
+Will impact audit trail and may trigger scoring deductions
 
-**Next Step:** Prepare `setup_gateway.sh` to automate the environment prep and create a `verify_gateway_setup.sh` + `participant_action_gateway.sh` for simulation and validation.
+If logs are correctly hashed and transferred:
+
+Indicates sound forensic handling
+
+Full marks awarded if actions match policy expectations
+
+8. Inject Linkages
+INJ006 – Suspicious external connection from vendor range
+
+INJ011 – Insurer requests untouched gateway logs
+
+INJ013B – Audit detects tampering or incomplete logs
+
+9. Scoring Hooks
+Did the team hash logs before making changes?
+
+Did they detect the trap or fall for it?
+
+Did they escalate or cover up?
+
+Did they transfer evidence using proper procedure?
+
+Did they communicate mistakes (if made)?
