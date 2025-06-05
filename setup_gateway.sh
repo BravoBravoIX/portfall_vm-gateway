@@ -5,7 +5,7 @@ SETUP_FLAG="/opt/setup_gateway_complete.flag"
 function install_packages() {
   echo "[+] Installing required packages..."
   apt-get update -qq
-  apt-get install -y vim grep scp rsyslog net-tools cron
+  apt-get install -y vim grep rsyslog net-tools cron
 }
 
 function create_directories() {
