@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SETUP_FLAG="/opt/setup_gateway_complete.flag"
+FAKE_SERVICE_PATH="/etc/systemd/system/vendor-sync.service"
 
 function install_packages() {
   echo "[+] Installing required packages..."
@@ -50,6 +51,28 @@ EOF
   chmod +x /opt/security/remove_malware.sh
 }
 
+function create_fake_service() {
+  echo "[+] Creating fake systemd service: vendor-sync.service"
+  cat > "$FAKE_SERVICE_PATH" <<EOF
+[Unit]
+Description=Vendor Data Sync Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/true
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reexec
+  systemctl daemon-reload
+  systemctl enable vendor-sync.service >/dev/null 2>&1
+  systemctl start vendor-sync.service
+}
+
 function mark_complete() {
   echo "[+] Marking setup complete."
   touch "$SETUP_FLAG"
@@ -57,6 +80,10 @@ function mark_complete() {
 
 function reset_vm() {
   echo "[!] Resetting vm-gateway to pre-scenario state..."
+  systemctl stop vendor-sync.service >/dev/null 2>&1
+  systemctl disable vendor-sync.service >/dev/null 2>&1
+  rm -f "$FAKE_SERVICE_PATH"
+  systemctl daemon-reload
   rm -f /opt/security/remove_malware.sh
   rm -f /var/log/gateway/vendor.log
   rm -f /var/log/gateway/auth.log
@@ -79,6 +106,7 @@ install_packages
 create_directories
 create_logs
 create_trap_script
+create_fake_service
 mark_complete
 
 echo "[✓] vm-gateway setup complete. Ready for scenario."
