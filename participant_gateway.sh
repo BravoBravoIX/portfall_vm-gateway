@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Participant Action Simulation Script for vm-gateway
-# This simulates realistic actions participants may take during the scenario
-# to explore, investigate, or (mistakenly) act on the system.
+# Simulates investigative actions and likely participant behaviours during the scenario
 
 set -e
 
@@ -18,7 +17,7 @@ ls -lh "$LOG_DIR"
 ### 2. Read vendor.log for anomalies
 
 echo -e "\n[2] Viewing suspicious entries in vendor.log..."
-tail -n 10 "$LOG_DIR/vendor.log"
+cat "$LOG_DIR/vendor.log"
 
 ### 3. View authentication logs
 
@@ -30,8 +29,8 @@ cat "$LOG_DIR/auth.log"
 echo -e "\n[4] Hashing vendor.log and comparing with reference..."
 ACTUAL=$(sha256sum "$LOG_DIR/vendor.log" | cut -d ' ' -f1)
 EXPECTED=$(cut -d ' ' -f1 "$HASH_REF")
-echo "Actual:   $ACTUAL"
 echo "Expected: $EXPECTED"
+echo "Actual:   $ACTUAL"
 if [[ "$ACTUAL" == "$EXPECTED" ]]; then
   echo "[✓] Log integrity appears intact."
 else
@@ -40,15 +39,15 @@ fi
 
 ### 5. Investigate trap script
 
-echo -e "\n[5] Viewing remove_malware.sh..."
+echo -e "\n[5] Viewing remove_malware.sh (trap)..."
 cat "$TRAP_SCRIPT"
 
-### 6. (Optional) Simulate mistake — run trap script
+### 6. Simulate common mistake — run trap script
 
 echo -e "\n[6] Simulating participant mistake: running remove_malware.sh..."
 "$TRAP_SCRIPT"
 
-### 7. Recheck logs after trap execution
+### 7. Review logs after running trap script
 
 echo -e "\n[7] Checking logs after trap execution..."
 ls -lh "$LOG_DIR"
